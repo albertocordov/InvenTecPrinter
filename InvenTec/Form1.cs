@@ -12,6 +12,8 @@ using System.Windows.Forms;
 using System.Runtime.InteropServices;
 using System.Data.SqlClient;
 using System.Drawing.Printing;
+using System.Reflection;
+using Zebra.Sdk.Comm;
 
 namespace InvenTec
 {
@@ -22,7 +24,8 @@ namespace InvenTec
         [DllImport("user32.DLL", EntryPoint = "SendMessage")]
         private extern static void SendMessage(System.IntPtr hWnd, int wMsg, int wParam, int lParam);
 
-        private ZebraLabelPrinter labelPrinter;
+        private DriverPrinterConnection labelPrinter;
+        string zplData;
         public Form1()
         {
 
@@ -61,7 +64,7 @@ namespace InvenTec
                 {
                     connection.Open();
                     // Create a SQL query to retrieve department data from your database
-                    string query = "SELECT alias FROM departamentos";
+                    string query = "SELECT Depalias FROM departamentos";
                     SqlCommand cmd = new SqlCommand(query, connection);
 
                     SqlDataReader reader = cmd.ExecuteReader();
@@ -72,7 +75,7 @@ namespace InvenTec
                     while (reader.Read())
                     {
                         // Add each department name to the ComboBox
-                        cmbDeptos.Items.Add(reader["alias"].ToString());
+                        cmbDeptos.Items.Add(reader["depalias"].ToString());
                     }
 
                     // Close the data reader and connection
@@ -93,7 +96,7 @@ namespace InvenTec
 
         private void vistaPreviaEtiqueta(string prog, string depto, string encargado, string nombre, string descripcion)
         {
-            string zplData = "^XA" +
+            zplData = "^XA" +
                 "~TA000" +
                 "~JSN" +
                 "^LT0" +
@@ -183,10 +186,18 @@ namespace InvenTec
                         connection.Open();
 
                         // Crea una consulta SQL para obtener los datos de los activos en el área seleccionada
-                        string query = @"SELECT A.PROG, A.NOMBRE, A.CARACTERISTICA_DEL_BIEN as CARACTERISTICAS, D.DEPARTAMENTO AS DEPARTAMENTO, A.JEFE_DE_DEPARTAMENTO
-                        FROM Activos A
-                        JOIN Departamentos D ON A.CLAVE_DEPTO = D.CLAVE
-                        WHERE A.CLAVE_DEPTO = (SELECT clave FROM areas WHERE nombre = @AreaNombre)";
+                        string query = @"SELECT 
+                        A.ActId,
+                        A.ActNombre,
+                        A.ActCaracteristicas,
+                        J.JefeNombre AS JefeDepartamento,
+                        D.Depalias AS NombreDepartamento
+                        FROM Activos AS A
+                        INNER JOIN Areas AS AR ON A.AreaId = AR.AreaId
+                        INNER JOIN Departamentos AS D ON AR.Depclave = D.Depclave
+                        LEFT JOIN Jefes AS J ON D.JefeId = J.JefeId
+                        WHERE A.AreaId = (SELECT AreaId FROM areas WHERE AreaNombre = @AreaNombre)
+                        ";
 
                         // Crea un comando SQL con parámetros
                         SqlCommand cmd = new SqlCommand(query, connection);
@@ -202,11 +213,11 @@ namespace InvenTec
 
                         if (dataTable.Rows.Count > 0)
                         {
-                            string prog = dataTable.Rows[0]["PROG"].ToString().ToUpper();
-                            string depto = dataTable.Rows[0]["DEPARTAMENTO"].ToString().ToUpper();
-                            string encargado = dataTable.Rows[0]["JEFE_DE_DEPARTAMENTO"].ToString().ToUpper();
-                            string nombre = dataTable.Rows[0]["NOMBRE"].ToString().ToUpper();
-                            string descripcion = dataTable.Rows[0]["CARACTERISTICAS"].ToString().ToUpper();
+                            string prog = dataTable.Rows[0]["ActId"].ToString().ToUpper();
+                            string depto = dataTable.Rows[0]["NombreDepartamento"].ToString().ToUpper();
+                            string encargado = dataTable.Rows[0]["JefeDepartamento"].ToString().ToUpper();
+                            string nombre = dataTable.Rows[0]["ActNombre"].ToString().ToUpper();
+                            string descripcion = dataTable.Rows[0]["ActCaracteristicas"].ToString().ToUpper();
 
                             // Llamar al método vistaPreviaEtiqueta con los valores de la base de datos
                             vistaPreviaEtiqueta(prog, depto, encargado, nombre, descripcion);
@@ -250,11 +261,11 @@ namespace InvenTec
                 {
                     connection.Open();
 
-                    string query = "SELECT nombre " +
+                    string query = "SELECT AreaNombre " +
                     "FROM areas " +
-                    "WHERE clave = (SELECT clave " +
+                    "WHERE depclave = (SELECT depclave " +
                     "FROM departamentos " +
-                    "WHERE alias = @DepartamentoAlias)";
+                    "WHERE depalias = @DepartamentoAlias)";
 
                     SqlCommand cmd = new SqlCommand(query, connection);
                     cmd.Parameters.AddWithValue("@DepartamentoAlias", departamentoSeleccionado);
@@ -266,7 +277,7 @@ namespace InvenTec
                     while (reader.Read())
                     {
                         // Agrega cada área al ComboBox cmbAreas
-                        cmbArea.Items.Add(reader["nombre"].ToString());
+                        cmbArea.Items.Add(reader["areanombre"].ToString());
                     }
 
                     reader.Close();
@@ -284,16 +295,24 @@ namespace InvenTec
             {
                 try
                 {
+                    lblConectividad.Text = "Conectando...";
+                    lblConectividad.ForeColor = Color.DarkOrange;
+                    // Impresora seleccionada.
                     string impresoraSeleccionada = cmbImpresoraZebra.SelectedItem.ToString();
-                    labelPrinter = new ZebraLabelPrinter(impresoraSeleccionada);
-                    // Se abre y cierra la conexión para testear que funcione.
-                    labelPrinter.Open();
-                    labelPrinter.Close();
+                    
+                    // Instantiate connection for ZPL USB port for given printer name.
+                    Connection thePrinterConn = new DriverPrinterConnection(impresoraSeleccionada);
+                    thePrinterConn.Open();
+                    thePrinterConn.Close();
+
+                    // Si se conecta, se pone en verde el label de conectividad.
                     lblConectividad.Text = "Conectado";
                     lblConectividad.ForeColor = Color.DarkGreen;
                 }
                 catch (Exception ex)
                 {
+                    lblConectividad.Text = "No conectado";
+                    lblConectividad.ForeColor = Color.DarkRed;
                     MessageBox.Show("Error al abrir la conexión con la impresora: " + ex.Message, "Error");
                 }
             } else {
@@ -314,14 +333,14 @@ namespace InvenTec
                     try
                     {
                         connection.Open();
-                        string query = @"SELECT A.PROG, 
-                        A.NOMBRE, 
-                        A.CARACTERISTICA_DEL_BIEN as CARACTERISTICAS, 
-                        D.DEPARTAMENTO AS DEPARTAMENTO, 
-                        A.JEFE_DE_DEPARTAMENTO
+                        string query = @"SELECT A.ActId, 
+                        A.ActNombre, 
+                        A.ActCaracteristicas as CARACTERISTICAS, 
+                        D.depdepto AS DEPARTAMENTO, 
+                        A.JefeNombre
                         FROM Activos A
-                        JOIN Departamentos D ON A.CLAVE_DEPTO = D.CLAVE
-                        WHERE A.PROG = @Activo";
+                        JOIN Departamentos D ON A.depclave = D.depclave
+                        WHERE A.ActId = @Activo";
 
                         SqlCommand cmd = new SqlCommand(query, connection);
                         cmd.Parameters.AddWithValue("@Activo", activo);
@@ -334,10 +353,10 @@ namespace InvenTec
 
                         if (dataTable.Rows.Count > 0)
                         {
-                            string prog = dataTable.Rows[0]["PROG"].ToString().ToUpper();
-                            string depto = dataTable.Rows[0]["DEPARTAMENTO"].ToString().ToUpper();
-                            string encargado = dataTable.Rows[0]["JEFE_DE_DEPARTAMENTO"].ToString().ToUpper();
-                            string nombre = dataTable.Rows[0]["NOMBRE"].ToString().ToUpper();
+                            string prog = dataTable.Rows[0]["ActId"].ToString().ToUpper();
+                            string depto = dataTable.Rows[0]["depdepto"].ToString().ToUpper();
+                            string encargado = dataTable.Rows[0]["JefeNombre"].ToString().ToUpper();
+                            string nombre = dataTable.Rows[0]["ActNombre"].ToString().ToUpper();
                             string descripcion = dataTable.Rows[0]["CARACTERISTICAS"].ToString().ToUpper();
 
                             // Llamar al método vistaPreviaEtiqueta con los valores de la base de datos
@@ -371,33 +390,28 @@ namespace InvenTec
         {
             if (cmbImpresoraZebra.SelectedItem != null)
             {
-                // Los datos ZPL que deseas imprimir
-                string zplData = "^XA^FO100,100^AD^FDOLA K ASE^FS^XZ";
-
-                // Nombre de la impresora Zebra
-                string printerName = "NombreDeTuImpresora"; // Reemplaza con el nombre de tu impresora
-
-                // Crea una instancia de ZebraLabelPrinter
-                ZebraLabelPrinter labelPrinter = new ZebraLabelPrinter(printerName);
-
                 try
                 {
-                    // Abre la conexión con la impresora
-                    labelPrinter.Open();
+                    // Impresora seleccionada
+                    string impresoraSeleccionada = cmbImpresoraZebra.SelectedItem.ToString();
+                    
+                    // Instantiate connection for ZPL USB port for given printer name
+                    Connection thePrinterConn = new DriverPrinterConnection(impresoraSeleccionada);
+                    thePrinterConn.Open();
 
-                    // Imprime la etiqueta
-                    labelPrinter.PrintLabel(zplData);
+                    lblConectividad.Text = "Conectado";
+                    lblConectividad.ForeColor = Color.DarkGreen;
 
-                    // Cierra la conexión con la impresora
-                    labelPrinter.Close();
+                    //string zplData = "^XA^FO20,20^A0N,25,25^FDThis is a ZPL test.^FS^XZ";
+
+                    // Imprime la etiqueta usando el zplData
+                    thePrinterConn.Write(Encoding.UTF8.GetBytes(zplData));
+                    thePrinterConn.Close();
                 }
                 catch (Exception ex)
                 {
-                    // Maneja cualquier excepción que pueda ocurrir durante la impresión
-                    MessageBox.Show("Error al imprimir: " + ex.Message);
+                    MessageBox.Show("Error al abrir la conexión con la impresora: " + ex.Message, "Error");
                 }
-            } else {
-                MessageBox.Show("Por favor, selecciona una impresora antes de continuar.", "Advertencia");
             }
         }
     }
