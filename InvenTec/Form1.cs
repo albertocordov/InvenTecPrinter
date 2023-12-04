@@ -56,7 +56,7 @@ namespace InvenTec
         private void llenaCmbDeptos()
         {
             // Define your SQL connection string
-            string connectionString = "Server=DAVID-D14\\SQLEXPRESS;Database=inventec;Integrated Security=True;";
+            string connectionString = "Server=inventec.database.windows.net;Database=inventec;User=adminsql;Password=Inventec2023;";
 
             using (SqlConnection connection = new SqlConnection(connectionString))
             {
@@ -94,35 +94,37 @@ namespace InvenTec
 
         }
 
-        private void vistaPreviaEtiqueta(string prog, string depto, string encargado, string nombre, string descripcion)
+        private void vistaPreviaEtiqueta(string prog, string depto, string nombre, string descripcion)
         {
-            zplData = "^XA" +
-                "~TA000" +
-                "~JSN" +
-                "^LT0" +
-                "^MNW" +
-                "^MTT" +
-                "^PON" +
-                "^PMN" +
-                "^LH0,0" +
-                "^JMA" +
-                "^PR8,8" +
-                "~SD15" +
-                "^JUS" +
-                "^LRN" +
-                "^CI27" +
-                "^PA0,1,1,0" +
-                "^MMT" +
-                "^LS0" +
-                "^BY4,3,65^FT145,256^BCN,,Y,N" +
-                "^FH\\^FD>:" + prog + "^FS" +
-                "^FT16,41^A0N,28,28^FH\\^CI28^FDT.N.M./ INSTITUTO TECNOLOGICO DE CULIACAN^FS^CI27" +
-                "^FT16,76^A0N,28,28^FH\\^CI28^FDDEPTO: " + depto + "^FS^CI27" +
-                "^FT16,111^A0N,28,28^FH\\^CI28^FDENCARGADO: " + encargado + "^FS^CI27" +
-                "^FT16,146^A0N,28,28^FH\\^CI28^FD" + nombre + "^FS^CI27" +
-                "^FT16,181^A0N,28,28^FH\\^CI28^FD" + descripcion + "^FS^CI27" +
-                "^FT513,308^A0N,28,28^FH\\^CI28^FD25/10/2023^FS^CI27" +
-                "^XZ";
+            DateTime fechaActual = DateTime.Now;
+            string fechaFormateada = fechaActual.ToString("dd/MM/yyyy");
+
+            var zplData = "^XA" +
+             "~TA000" +
+             "~JSN" +
+             "^LT0" +
+             "^MNW" +
+             "^MTT" +
+             "^PON" +
+             "^PMN" +
+             "^LH0,0" +
+             "^JMA" +
+             "^PR8,8" +
+             "~SD15" +
+             "^JUS" +
+             "^LRN" +
+             "^CI27" +
+             "^PA0,1,1,0" +
+             "^MMT" +
+             "^LS0" +
+             "^BY4,3,80^FT141,242^BCN,,Y,N" +
+             "^FH\\^FD>:" + prog + "^FS" +
+             "^FT16,41^A0N,28,28^FH\\^CI28^FDT.N.M./ INSTITUTO TECNOLOGICO DE CULIACAN^FS^CI27" +
+             "^FT16,76^A0N,28,28^FH\\^CI28^FDDEPTO: " + depto + "^FS^CI27" +
+             "^FT16,111^A0N,28,28^FH\\^CI28^FD" + nombre + "^FS^CI27" +
+             "^FT16,146^A0N,28,28^FH\\^CI28^FD" + descripcion + "^FS^CI27" +
+             "^FT513,308^A0N,28,28^FH\\^CI28^FD" + fechaFormateada + "^FS^CI27" +
+             "^XZ";
 
             // URL que contiene el código ZPL (asegúrate de que sea una URL válida)
             string zplUrl = "http://api.labelary.com/v1/printers/8dpmm/labels/4x6/0/";
@@ -177,7 +179,7 @@ namespace InvenTec
                 string areaSeleccionada = cmbArea.SelectedItem.ToString();
 
                 // Define tu conexión a la base de datos
-                string connectionString = "Server=DAVID-D14\\SQLEXPRESS;Database=inventec;Integrated Security=True;";
+                string connectionString = "Server=inventec.database.windows.net;Database=inventec;User=adminsql;Password=Inventec2023;";
 
                 using (SqlConnection connection = new SqlConnection(connectionString))
                 {
@@ -187,11 +189,11 @@ namespace InvenTec
 
                         // Crea una consulta SQL para obtener los datos de los activos en el área seleccionada
                         string query = @"SELECT 
-                        A.ActId,
-                        A.ActNombre,
-                        A.ActCaracteristicas,
-                        J.JefeNombre AS JefeDepartamento,
-                        D.Depalias AS NombreDepartamento
+                        A.ActId as ID,
+                        A.ActNombre as NOMBRE,
+                        A.ActCaracteristicas as CARACTERISTICAS,
+                        J.JefeNombre as ENCARGADO,
+                        D.depalias AS DEPARTAMENTO
                         FROM Activos AS A
                         INNER JOIN Areas AS AR ON A.AreaId = AR.AreaId
                         INNER JOIN Departamentos AS D ON AR.Depclave = D.Depclave
@@ -211,16 +213,23 @@ namespace InvenTec
                         // Asigna el conjunto de datos al DataGridView
                         dataGridActivos.DataSource = dataTable;
 
+                        // Configura la propiedad AutoSizeColumnsMode a Fill
+                        dataGridActivos.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
+
+                        // Configura la propiedad AutoSizeRowsMode a AllCells
+                        dataGridActivos.AutoSizeRowsMode = DataGridViewAutoSizeRowsMode.AllCells;
+
+
                         if (dataTable.Rows.Count > 0)
                         {
-                            string prog = dataTable.Rows[0]["ActId"].ToString().ToUpper();
-                            string depto = dataTable.Rows[0]["NombreDepartamento"].ToString().ToUpper();
-                            string encargado = dataTable.Rows[0]["JefeDepartamento"].ToString().ToUpper();
-                            string nombre = dataTable.Rows[0]["ActNombre"].ToString().ToUpper();
-                            string descripcion = dataTable.Rows[0]["ActCaracteristicas"].ToString().ToUpper();
+                            string prog = dataTable.Rows[0]["ID"].ToString().ToUpper();
+                            string depto = dataTable.Rows[0]["DEPARTAMENTO"].ToString().ToUpper();
+                            string encargado = dataTable.Rows[0]["ENCARGADO"].ToString().ToUpper();
+                            string nombre = dataTable.Rows[0]["NOMBRE"].ToString().ToUpper();
+                            string descripcion = dataTable.Rows[0]["CARACTERISTICAS"].ToString().ToUpper();
 
                             // Llamar al método vistaPreviaEtiqueta con los valores de la base de datos
-                            vistaPreviaEtiqueta(prog, depto, encargado, nombre, descripcion);
+                            vistaPreviaEtiqueta(prog, depto, nombre, descripcion);
                         }
                     }
                     catch (Exception ex)
@@ -254,7 +263,7 @@ namespace InvenTec
         {
             cmbArea.SelectedIndex = -1;
             string departamentoSeleccionado = cmbDeptos.SelectedItem.ToString();
-            string connectionString = "Server=DAVID-D14\\SQLEXPRESS;Database=inventec;Integrated Security=True;";
+            string connectionString = "Server=inventec.database.windows.net;Database=inventec;User=adminsql;Password=Inventec2023;";
             using (SqlConnection connection = new SqlConnection(connectionString))
             {
                 try
@@ -327,19 +336,20 @@ namespace InvenTec
             // Verifica si el campo de texto no está vacío
             if (!string.IsNullOrWhiteSpace(activo))
             {
-                string connectionString = "Server=DAVID-D14\\SQLEXPRESS;Database=inventec;Integrated Security=True;";
+                string connectionString = "Server=inventec.database.windows.net;Database=inventec;User=adminsql;Password=Inventec2023;";
                 using (SqlConnection connection = new SqlConnection(connectionString))
                 {
                     try
                     {
                         connection.Open();
-                        string query = @"SELECT A.ActId, 
-                        A.ActNombre, 
+                        string query = @"SELECT A.ActId as ID, 
+                        A.ActNombre as NOMBRE,    
                         A.ActCaracteristicas as CARACTERISTICAS, 
-                        D.depdepto AS DEPARTAMENTO, 
-                        A.JefeNombre
+                        D.depalias AS DEPARTAMENTO, 
+                        J.JefeNombre as ENCARGADO
                         FROM Activos A
                         JOIN Departamentos D ON A.depclave = D.depclave
+                        JOIN Jefes J ON J.JefeId = D.JefeId
                         WHERE A.ActId = @Activo";
 
                         SqlCommand cmd = new SqlCommand(query, connection);
@@ -351,16 +361,23 @@ namespace InvenTec
 
                         dataGridActivos.DataSource = dataTable;
 
+                        // Configura la propiedad AutoSizeColumnsMode a Fill
+                        dataGridActivos.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
+
+                        // Configura la propiedad AutoSizeRowsMode a AllCells
+                        dataGridActivos.AutoSizeRowsMode = DataGridViewAutoSizeRowsMode.AllCells;
+
+
                         if (dataTable.Rows.Count > 0)
                         {
-                            string prog = dataTable.Rows[0]["ActId"].ToString().ToUpper();
-                            string depto = dataTable.Rows[0]["depdepto"].ToString().ToUpper();
-                            string encargado = dataTable.Rows[0]["JefeNombre"].ToString().ToUpper();
-                            string nombre = dataTable.Rows[0]["ActNombre"].ToString().ToUpper();
+                            string prog = dataTable.Rows[0]["ID"].ToString().ToUpper();
+                            string depto = dataTable.Rows[0]["DEPARTAMENTO"].ToString().ToUpper();
+                            string encargado = dataTable.Rows[0]["ENCARGADO"].ToString().ToUpper();
+                            string nombre = dataTable.Rows[0]["NOMBRE"].ToString().ToUpper();
                             string descripcion = dataTable.Rows[0]["CARACTERISTICAS"].ToString().ToUpper();
 
                             // Llamar al método vistaPreviaEtiqueta con los valores de la base de datos
-                            vistaPreviaEtiqueta(prog, depto, encargado, nombre, descripcion);
+                            vistaPreviaEtiqueta(prog, depto, nombre, descripcion);
                         }
                     }
                     catch (Exception ex)
@@ -388,30 +405,129 @@ namespace InvenTec
 
         private void btnImprimir_Click(object sender, EventArgs e)
         {
-            if (cmbImpresoraZebra.SelectedItem != null)
+            if (cmbImpresoraZebra.SelectedItem == null)
+            {
+                MessageBox.Show("Por favor, selecciona una impresora antes de continuar.", "Advertencia");
+                return;
+            }
+
+            if (dataGridActivos.Rows.Count == 0)
+            {
+                MessageBox.Show("No hay datos para imprimir.", "Advertencia");
+                return;
+            }
+
+            var result = MessageBox.Show($"¿Está seguro de imprimir {(dataGridActivos.Rows.Count)-1} etiquetas?", "Confirmación", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+
+            if (result != DialogResult.Yes)
+            {
+                return;
+            }
+
+            try
+            {
+                DateTime fechaActual = DateTime.Now;
+                string fechaFormateada = fechaActual.ToString("dd/MM/yyyy");
+
+                string impresoraSeleccionada = cmbImpresoraZebra.SelectedItem.ToString();
+
+                Connection thePrinterConn = new DriverPrinterConnection(impresoraSeleccionada);
+                thePrinterConn.Open();
+
+                lblConectividad.Text = "Conectado";
+                lblConectividad.ForeColor = Color.DarkGreen;
+
+                try
+                {
+                    foreach (DataGridViewRow row in dataGridActivos.Rows)
+                    {
+                        if (row.IsNewRow) continue;
+
+                        string id = row.Cells["ID"].Value.ToString();
+                        string nombre = row.Cells["NOMBRE"].Value.ToString();
+                        string caracteristicas = row.Cells["CARACTERISTICAS"].Value.ToString();
+                        string departamento = row.Cells["DEPARTAMENTO"].Value.ToString();
+
+                        int idFormat;
+                        if (!int.TryParse(id, out idFormat)) continue;
+
+                        var zplData = $"^XA" +
+                                      $"~TA000" +
+                                      $"~JSN" +
+                                      $"^LT0" +
+                                      $"^MNW" +
+                                      $"^MTT" +
+                                      $"^PON" +
+                                      $"^PMN" +
+                                      $"^LH0,0" +
+                                      $"^JMA" +
+                                      $"^PR8,8" +
+                                      $"~SD15" +
+                                      $"^JUS" +
+                                      $"^LRN" +
+                                      $"^CI27" +
+                                      $"^PA0,1,1,0" +
+                                      $"^MMT" +
+                                      $"^LS0" +
+                                      $"^BY4,3,80^FT141,242^BCN,,Y,N" +
+                                      $"^FH\\^FD>:{idFormat}^FS" +
+                                      $"^FT16,41^A0N,28,28^FH\\^CI28^FDT.N.M./ INSTITUTO TECNOLOGICO DE CULIACAN^FS^CI27" +
+                                      $"^FT16,76^A0N,28,28^FH\\^CI28^FDDEPTO: {departamento}^FS^CI27" +
+                                      $"^FT16,111^A0N,28,28^FH\\^CI28^FD{nombre}^FS^CI27" +
+                                      $"^FT16,146^A0N,28,28^FH\\^CI28^FD{caracteristicas}^FS^CI27" +
+                                      $"^FT513,308^A0N,28,28^FH\\^CI28^FD{fechaFormateada}^FS^CI27" +
+                                      $"^XZ";
+
+                        thePrinterConn.Write(Encoding.UTF8.GetBytes(zplData));
+                        insertaDatosImpresion(idFormat);
+                    }
+                }
+                finally
+                {
+                    thePrinterConn.Close();
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Error al abrir la conexión con la impresora: " + ex.Message, "Error");
+            }
+        }
+
+        public void insertaDatosImpresion(int id)
+        {
+            string connectionString = "Server=inventec.database.windows.net;Database=inventec;User=adminsql;Password=Inventec2023;";
+
+            using (SqlConnection connection = new SqlConnection(connectionString))
             {
                 try
                 {
-                    // Impresora seleccionada
-                    string impresoraSeleccionada = cmbImpresoraZebra.SelectedItem.ToString();
-                    
-                    // Instantiate connection for ZPL USB port for given printer name
-                    Connection thePrinterConn = new DriverPrinterConnection(impresoraSeleccionada);
-                    thePrinterConn.Open();
+                    connection.Open();
 
-                    lblConectividad.Text = "Conectado";
-                    lblConectividad.ForeColor = Color.DarkGreen;
+                    // Utiliza un comando parametrizado para evitar la inyección de SQL
+                    string query = "INSERT INTO impresiones (ActId) VALUES (@id)";
+                    SqlCommand cmd = new SqlCommand(query, connection);
+                    cmd.Parameters.AddWithValue("@id", id);
 
-                    //string zplData = "^XA^FO20,20^A0N,25,25^FDThis is a ZPL test.^FS^XZ";
-
-                    // Imprime la etiqueta usando el zplData
-                    thePrinterConn.Write(Encoding.UTF8.GetBytes(zplData));
-                    thePrinterConn.Close();
+                    // Ejecuta la consulta sin necesidad de un DataReader
+                    cmd.ExecuteNonQuery();
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show("Error al abrir la conexión con la impresora: " + ex.Message, "Error");
+                    // Maneja cualquier excepción aquí, por ejemplo, muestra un mensaje de error
+                    MessageBox.Show("Error: " + ex.Message);
                 }
+            }
+        }
+
+        private void txtActivo_KeyPress(object sender, KeyPressEventArgs e)
+        {
+            if (e.KeyChar == (char)Keys.Enter)
+            {
+                // Ejecuta el evento del botón
+                btnConsultarIndividual.PerformClick();
+
+                // Suprime el carácter de retorno de carro para evitar que se muestre en el TextBox
+                e.Handled = true;
             }
         }
     }
