@@ -451,32 +451,37 @@ namespace InvenTec
                         int idFormat;
                         if (!int.TryParse(id, out idFormat)) continue;
 
+
                         var zplData = $"^XA" +
-                                      $"~TA000" +
-                                      $"~JSN" +
-                                      $"^LT0" +
-                                      $"^MNW" +
-                                      $"^MTT" +
-                                      $"^PON" +
-                                      $"^PMN" +
-                                      $"^LH0,0" +
-                                      $"^JMA" +
-                                      $"^PR8,8" +
-                                      $"~SD15" +
-                                      $"^JUS" +
-                                      $"^LRN" +
-                                      $"^CI27" +
-                                      $"^PA0,1,1,0" +
-                                      $"^MMT" +
-                                      $"^LS0" +
-                                      $"^BY4,3,80^FT141,242^BCN,,Y,N" +
-                                      $"^FH\\^FD>:{idFormat}^FS" +
-                                      $"^FT16,41^A0N,28,28^FH\\^CI28^FDT.N.M./ INSTITUTO TECNOLOGICO DE CULIACAN^FS^CI27" +
-                                      $"^FT16,76^A0N,28,28^FH\\^CI28^FDDEPTO: {departamento}^FS^CI27" +
-                                      $"^FT16,111^A0N,28,28^FH\\^CI28^FD{nombre}^FS^CI27" +
-                                      $"^FT16,146^A0N,28,28^FH\\^CI28^FD{caracteristicas}^FS^CI27" +
-                                      $"^FT513,308^A0N,28,28^FH\\^CI28^FD{fechaFormateada}^FS^CI27" +
-                                      $"^XZ";
+                                $"~TA000" +
+                                $"~JSN" +
+                                $"^LT0" +
+                                $"^MNW" +
+                                $"^MTT" +
+                                $"^PON" +
+                                $"^PMN" +
+                                $"^LH0,0" +
+                                $"^JMA" +
+                                $"^PR8,8" +
+                                $"~SD15" +
+                                $"^JUS" +
+                                $"^LRN" +
+                                $"^CI27" +
+                                $"^PA0,1,1,0" +
+                                $"^MMT" +
+                                $"^PW559" +
+                                $"^LL400" +
+                                $"^LS0" +
+                                $"^FT11,41^A0N,25,25^FH\\^CI28^FDT.N.M./ INSTITUTO TECNOLOGICO DE CULIACAN^FS^CI27" +
+                                $"^FT16,73^A0N,25,25^FH\\^CI28^FDDEPTO:{departamento}^FS^CI27" +
+                                $"^FT16,108^A0N,25,25^FH\\^CI28^FD{nombre}^FS^CI27" +
+                                $"^FT16,143^A0N,25,25^FH\\^CI28^FD{caracteristicas}^FS^CI27" +
+                                $"^BY4,3,104^FT101,275^BCN,,Y,N" +
+                                $"^FH\\^FD>:{idFormat}^FS" +
+                                $"^FT417,357^A0N,25,25^FH\\^CI28^FD{fechaFormateada}^FS^CI27" +
+                                $"^XZ";
+
+
 
                         thePrinterConn.Write(Encoding.UTF8.GetBytes(zplData));
                         insertaDatosImpresion(idFormat);
